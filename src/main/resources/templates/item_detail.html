@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${item.name} + ' | 商品詳細'">商品詳細</title>
+</head>
+<body>
+
+<h1>SUN店 ネット予約・通販サイト</h1>
+
+<p><a th:href="@{/}">← 商品一覧に戻る</a></p>
+
+<h2 th:text="${item.name}">商品名</h2>
+
+<ul>
+    <li>説明：<span th:text="${item.description}">説明</span></li>
+    <li>価格：<span th:text="${item.price}">0</span> 円</li>
+    <li>在庫：<span th:text="${item.stock}">0</span> 点</li>
+    <li>状態：
+        <span th:if="${item.status} == 'SOLD'">SOLD（売り切れ）</span>
+        <span th:if="${item.status} == 'PUBLIC'">販売中</span>
+    </li>
+</ul>
+
+<!-- ☆ ここから予約ボタン（次のステップの入口） -->
+<div th:if="${item.status} == 'PUBLIC' and ${item.stock} > 0">
+    <form th:action="@{|/orders/confirm/${item.id}|}" method="get">
+        <label>数量：</label>
+        <input type="number" name="quantity" value="1" min="1" th:max="${item.stock}">
+        <button type="submit">この商品を予約する</button>
+    </form>
+</div>
+
+<div th:if="${item.status} == 'SOLD' or ${item.stock} == 0">
+    <p style="color:red;">この商品は売り切れです。</p>
+</div>
+
+</body>
+</html>

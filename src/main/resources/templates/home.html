@@ -19,6 +19,7 @@
         <th>説明</th>
         <th>価格</th>
         <th>在庫</th>
+        <th>状態</th>
         <th>詳細</th>
     </tr>
     <tr th:each="item : ${items}">
@@ -27,10 +28,15 @@
         <td th:text="${item.price}">0</td>
         <td th:text="${item.stock}">0</td>
         <td>
+            <span th:if="${item.status} == 'SOLD'">SOLD</span>
+            <span th:if="${item.status} == 'PUBLIC'">販売中</span>
+        </td>
+        <td>
             <a th:href="@{|/items/${item.id}|}">詳細</a>
         </td>
     </tr>
 </table>
+
 
 <p>
     <a th:href="@{/logout}">ログアウト</a>
