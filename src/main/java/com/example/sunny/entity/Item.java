@@ -8,6 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
@@ -18,35 +19,35 @@ public class Item {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	// 商品名
 	@Column(nullable = false)
 	private String name;
 
-	// 説明文
 	@Column(nullable = false, length = 1000)
 	private String description;
 
-	// 価格
 	@Column(nullable = false)
 	private BigDecimal price;
 
-	// 在庫数
 	@Column(nullable = false)
 	private int stock;
 
-	// 公開状態 （PUBLIC / HIDDEN / SOLD）
 	@Column(nullable = false)
 	private String status;
 
-	// いつ登録されたか
+	// ★追加：画像パス（/uploads/xxx.jpg を保存）
+	@Column(name = "image_url")
+	private String imageUrl;
+
 	@Column(nullable = false)
 	private LocalDateTime createdAt;
 
-	// ★ 必須：引数なしコンストラクタ
-	public Item() {
+	@PrePersist
+	public void onCreate() {
+		this.createdAt = LocalDateTime.now();
 	}
 
-	// ゲッター・セッター（必要に応じて）
+	public Item() {
+	}
 
 	public Long getId() {
 		return id;
@@ -92,11 +93,17 @@ public class Item {
 		this.status = status;
 	}
 
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
+	// ★追加
+	public String getImageUrl() {
+		return imageUrl;
 	}
 
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
+	// ★追加
+	public void setImageUrl(String imageUrl) {
+		this.imageUrl = imageUrl;
+	}
+
+	public LocalDateTime getCreatedAt() {
+		return createdAt;
 	}
 }

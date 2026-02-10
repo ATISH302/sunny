@@ -1,78 +1,108 @@
+//LoginController.java
+
 package com.example.sunny.controller;
 
-import java.time.LocalDateTime;
-
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
 
-import com.example.sunny.entity.User;
-import com.example.sunny.form.UserRegisterForm;
-import com.example.sunny.repository.UserRepository;
-
-import jakarta.validation.Valid;
+// =====================
+// 認証関連：ログイン・ログアウト画面制御
+// =====================
+//
+// この Controller は、Spring Security と連携して
+// ログイン画面の表示やエラーメッセージの制御を行う。
+//
+// 主な役割：
+// ・ログイン画面の表示
+// ・ログイン失敗時のエラーメッセージ表示
+// ・BAN / SUSPENDED ユーザーへのメッセージ表示
+//
+// 実際の認証処理（ID・パスワードのチェック）は
+// Spring Security（SecurityConfig）が担当し、
+// この Controller は「画面制御のみ」を行う。
+//
 
 @Controller
 public class AuthController {
 
-	private final UserRepository userRepository;
-	private final PasswordEncoder passwordEncoder;
+	// =====================
+	// ログイン画面表示
+	// =====================
+	//
+	// URL：
+	// ・GET /login
+	//
+	// 機能概要：
+	// ・ログイン画面（login.html）を表示する
+	// ・ログイン失敗やBAN状態などに応じて
+	//   メッセージを画面に表示する
+	//
 
-	public AuthController(UserRepository userRepository,
-			PasswordEncoder passwordEncoder) {
-		this.userRepository = userRepository;
-		this.passwordEncoder = passwordEncoder;
-	}
-
-	// 🔹 ログイン画面表示
+	// Spring Security の formLogin 設定と連動しており、
+	// 実際のログイン処理は SecurityConfig 側で行われる。
+	//
 	@GetMapping("/login")
-	public String showLogin() {
-		return "login"; // login.html
-	}
+	public String login(
+			Model model,
+			String error,
+			String logout,
+			String banned,
+			String suspended) {
 
-	// 🔹 新規登録フォーム表示
-	@GetMapping("/register")
-	public String showRegisterForm(Model model) {
-		model.addAttribute("userForm", new UserRegisterForm());
-		return "register"; // register.html
-	}
-
-	// 🔹 新規登録の処理
-	@PostMapping("/register")
-	public String register(
-			@ModelAttribute("userForm") @Valid UserRegisterForm form,
-			BindingResult bindingResult) {
-
-		// 名前がかぶっていないかチェック
-		if (userRepository.findByName(form.getName()) != null) {
-			bindingResult.rejectValue("name", "duplicate", "そのユーザー名は既に使われています");
+		// =====================
+		// ログイン失敗時
+		// =====================
+		//
+		// ID またはパスワードが間違っている場合、
+		// /login?error=true でこの画面に戻される
+		//
+		if (error != null) {
+			model.addAttribute(
+					"errorMessage",
+					"メールアドレスまたはパスワードが正しくありません");
 		}
 
-		// メールがかぶっていないかチェック
-		if (userRepository.findByEmail(form.getEmail()) != null) {
-			bindingResult.rejectValue("email", "duplicate", "そのメールアドレスは既に登録されています");
+		// =====================
+		// ログアウト完了時
+		// =====================
+		//
+		// /logout 後に
+		// /login?logout=true にリダイレクトされる
+		//
+		if (logout != null) {
+			model.addAttribute(
+					"message",
+					"ログアウトしました");
 		}
 
-		if (bindingResult.hasErrors()) {
-			return "register";
+		// =====================
+		// BAN ユーザーの場合
+		// =====================
+		//
+		// SecurityConfig の AuthenticationFailureHandler により
+		// BANNED 状態のユーザーは
+		// /login?banned=true にリダイレクトされる
+		//
+		if (banned != null) {
+			model.addAttribute(
+					"errorMessage",
+					"このアカウントは利用停止（BAN）されています");
 		}
 
-		// エンティティに詰める
-		User user = new User();
-		user.setName(form.getName());
-		user.setEmail(form.getEmail());
-		user.setPassword(passwordEncoder.encode(form.getPassword())); // ← ここで暗号化
-		user.setRole("CUSTOMER"); // 一般ユーザー固定
-		user.setEnabled(true);
-		user.setCreatedAt(LocalDateTime.now());
+		// =====================
+		// 一時停止（SUSPENDED）ユーザーの場合
+		// =====================
+		//
+		// 一時的に利用停止されているユーザー向けのメッセージ
+		//
+		if (suspended != null) {
+			model.addAttribute(
+					"errorMessage",
+					"このアカウントは一時停止中です");
+		}
 
-		userRepository.save(user);
-
-		// 登録成功 → ログイン画面へ
-		return "redirect:/login?registered=true";
+		return "login";
 	}
+
 }

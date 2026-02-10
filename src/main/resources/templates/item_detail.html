@@ -1,39 +1,254 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${item.name} + ' | 商品詳細'">商品詳細</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
 
-<h1>SUN店 ネット予約・通販サイト</h1>
+<header class="site-header">
+    <div class="header-inner">
+        <button class="hamburger" type="button" aria-label="メニュー" onclick="toggleMenu()">☰</button>
 
-<p><a th:href="@{/}">← 商品一覧に戻る</a></p>
+        <div class="brand">
+            <div class="brand-title">SUN店 ネット予約・通販サイト</div>
+            <div class="brand-sub" th:if="${loginUserName != null}" th:text="'ようこそ、' + ${loginUserName} + ' さん'">
+                ようこそ、ユーザー さん
+            </div>
+        </div>
 
-<h2 th:text="${item.name}">商品名</h2>
+        <form class="logout-form" th:action="@{/logout}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <button class="btn btn-primary" type="submit">ログアウト</button>
+        </form>
+    </div>
+</header>
 
-<ul>
-    <li>説明：<span th:text="${item.description}">説明</span></li>
-    <li>価格：<span th:text="${item.price}">0</span> 円</li>
-    <li>在庫：<span th:text="${item.stock}">0</span> 点</li>
-    <li>状態：
-        <span th:if="${item.status} == 'SOLD'">SOLD（売り切れ）</span>
-        <span th:if="${item.status} == 'PUBLIC'">販売中</span>
-    </li>
-</ul>
+<nav id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-header">
+        <div class="drawer-title">マイページ</div>
+        <button class="drawer-close" type="button" aria-label="閉じる" onclick="toggleMenu()">✕</button>
+    </div>
 
-<!-- ☆ ここから予約ボタン（次のステップの入口） -->
-<div th:if="${item.status} == 'PUBLIC' and ${item.stock} > 0">
-    <form th:action="@{|/orders/confirm/${item.id}|}" method="get">
-        <label>数量：</label>
-        <input type="number" name="quantity" value="1" min="1" th:max="${item.stock}">
-        <button type="submit">この商品を予約する</button>
-    </form>
-</div>
+    <ul class="drawer-list">
+        <li><a th:href="@{/}">🏠 商品一覧</a></li>
+        <li><a th:href="@{/mypage/orders}">🧾 注文履歴</a></li>
+        <li><a th:href="@{/mypage/favorites}">💖 お気に入り</a></li>
 
-<div th:if="${item.status} == 'SOLD' or ${item.stock} == 0">
-    <p style="color:red;">この商品は売り切れです。</p>
-</div>
+		<li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+			<a th:href="@{/staff/items}">📦 スタッフ：商品管理</a>
+		</li>
+        <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+            <a th:href="@{/staff/orders}">🛠 スタッフ：注文管理</a>
+        </li>
+        <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+            <a th:href="@{/staff/items/new}" onclick="toggleMenu()">➕ スタッフ：商品登録</a>
+        </li>
+        <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+            <a th:href="@{/staff/reports}">🛡 スタッフ：通報一覧</a>
+        </li>
+        <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+            <a th:href="@{/staff/attendance}">🕒 スタッフ：勤怠打刻</a>
+        </li>
+        <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+            <a th:href="@{/staff/attendance/manage}">📋 スタッフ：勤怠管理（一覧）</a>
+        </li>
+
+        <li sec:authorize="hasRole('ADMIN')">
+            <a th:href="@{/admin/users}">👑 管理者：ユーザー管理</a>
+        </li>
+    </ul>
+</nav>
+
+<div id="backdrop" class="backdrop" onclick="toggleMenu()" aria-hidden="true"></div>
+
+<main class="page">
+
+    <section class="card">
+        <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+            <div>
+                <a class="link" th:href="@{/}">← 商品一覧に戻る</a>
+                <h1 class="page-title" th:text="${item.name}" style="margin-top:10px;">商品名</h1>
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center;">
+                <form th:action="@{'/favorites/add/' + ${item.id}}" method="post" th:if="${!isFavorite}">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button class="btn btn-primary" type="submit">❤ お気に入り</button>
+                </form>
+                <form th:action="@{'/favorites/remove/' + ${item.id}}" method="post" th:if="${isFavorite}">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button class="btn" type="submit" style="background:#fff; border:1px solid #e5e7eb;">★ お気に入り済み</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ★商品画像（小さく＆中央寄せ） -->
+        <div th:if="${item.imageUrl != null and !#strings.isEmpty(item.imageUrl)}"
+             style="margin-top:14px; display:flex; justify-content:center;">
+            <img th:src="${item.imageUrl}" th:alt="${item.name}"
+                 style="
+                    width:320px;
+                    height:320px;
+                    border-radius:18px;
+                    border:1px solid #e5e7eb;
+                    object-fit:cover;
+                 ">
+        </div>
+
+        <hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">
+
+        <ul style="margin:0; padding-left:18px; line-height:1.8;">
+            <li>説明：<span th:text="${item.description}"></span></li>
+            <li>価格：<span th:text="${item.price}"></span> 円</li>
+            <li>在庫：<span th:text="${item.stock}"></span> 点</li>
+            <li>状態：
+                <span class="badge badge-sold" th:if="${item.status == 'SOLD'}">SOLD（売り切れ）</span>
+                <span class="badge badge-public" th:if="${item.status == 'PUBLIC'}">販売中</span>
+            </li>
+        </ul>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+        <h2 style="margin:0 0 10px;">平均評価</h2>
+
+        <div th:if="${reviewCount == 0}">
+            <p style="margin:0; color:#6b7280;">まだレビューはありません。</p>
+        </div>
+
+        <div th:if="${reviewCount > 0}">
+            <p style="margin:0;">
+                平均評価：
+                <b th:text="${#numbers.formatDecimal(avgRating,1,1)}"></b>
+                ★（<span th:text="${reviewCount}"></span> 件）
+            </p>
+        </div>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+        <h2 style="margin:0 0 10px;">予約</h2>
+
+        <div th:if="${item.status == 'PUBLIC' and item.stock > 0}">
+            <form th:action="@{|/orders/confirm/${item.id}|}" method="get" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <label>数量：</label>
+                <input type="number" name="quantity" value="1" min="1" th:max="${item.stock}" style="padding:10px; border-radius:12px; border:1px solid #e5e7eb;">
+                <button class="btn btn-primary" type="submit">この商品を予約する</button>
+            </form>
+        </div>
+
+        <div th:if="${item.status == 'SOLD' or item.stock == 0}">
+            <p style="margin:0; color:#ef4444; font-weight:800;">この商品は売り切れです。</p>
+        </div>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+        <h2 style="margin:0 0 10px;">レビュー投稿</h2>
+
+        <p th:if="${reviewMessage}" th:text="${reviewMessage}" style="color:green; font-weight:bold;"></p>
+
+        <form th:action="@{'/reviews/add/' + ${item.id}}" method="post" style="display:grid; gap:10px; max-width:520px;">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+            <div>
+                <div style="font-weight:800; margin-bottom:6px;">評価</div>
+                <select name="rating" style="width:100%; padding:10px; border-radius:12px; border:1px solid #e5e7eb;">
+                    <option value="5">★★★★★</option>
+                    <option value="4">★★★★</option>
+                    <option value="3">★★★</option>
+                    <option value="2">★★</option>
+                    <option value="1">★</option>
+                </select>
+            </div>
+
+            <div>
+                <div style="font-weight:800; margin-bottom:6px;">コメント</div>
+                <textarea name="comment" rows="4" style="width:100%; padding:10px; border-radius:12px; border:1px solid #e5e7eb;"></textarea>
+            </div>
+
+            <button class="btn btn-primary" type="submit">レビュー投稿</button>
+        </form>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+        <h2 style="margin:0 0 10px;">レビュー一覧</h2>
+
+        <div th:if="${#lists.isEmpty(reviews)}">
+            <p style="margin:0; color:#6b7280;">まだレビューはありません。</p>
+        </div>
+
+        <div th:if="${!#lists.isEmpty(reviews)}" class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>日時</th>
+                        <th>ユーザー</th>
+                        <th>評価</th>
+                        <th>コメント</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr th:each="r : ${reviews}">
+                        <td th:text="${#temporals.format(r.createdAt,'yyyy/MM/dd HH:mm')}"></td>
+                        <td th:text="${r.user.name}"></td>
+                        <td>
+                            <span th:each="i : ${#numbers.sequence(1,5)}"
+                                  th:text="${i <= r.rating ? '★' : '☆'}"></span>
+                        </td>
+                        <td th:text="${r.comment}"></td>
+
+                        <td>
+                            <span th:if="${loginUserId != null and r.user.id == loginUserId}">
+                                <a class="link" th:href="@{'/reviews/edit/' + ${r.id}}">編集</a>
+
+                                <form th:action="@{'/reviews/delete/' + ${r.id}}"
+                                      method="post" style="display:inline;">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button class="btn" type="submit"
+                                            style="background:#fff; border:1px solid #e5e7eb;"
+                                            onclick="return confirm('自分のレビューを削除しますか？');">
+                                        削除
+                                    </button>
+                                </form>
+                            </span>
+
+                            <span th:if="${loginUserId == null or r.user.id != loginUserId}">
+                                <a class="link" th:href="@{'/reviews/report/' + ${r.id}}">通報</a>
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<script>
+function toggleMenu() {
+    const drawer = document.getElementById("drawer");
+    const backdrop = document.getElementById("backdrop");
+
+    const isOpen = drawer.classList.contains("open");
+    if (isOpen) {
+        drawer.classList.remove("open");
+        backdrop.classList.remove("show");
+        drawer.setAttribute("aria-hidden", "true");
+        backdrop.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("no-scroll");
+    } else {
+        drawer.classList.add("open");
+        backdrop.classList.add("show");
+        drawer.setAttribute("aria-hidden", "false");
+        backdrop.setAttribute("aria-hidden", "false");
+        document.body.classList.add("no-scroll");
+    }
+}
+</script>
 
 </body>
 </html>

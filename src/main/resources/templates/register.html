@@ -1,41 +1,63 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>新規会員登録</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新規会員登録 | SUN店</title>
+
+  <!-- 共通CSS -->
+  <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
-<h1>新規会員登録</h1>
 
-<form th:action="@{/register}" th:object="${userForm}" method="post">
+<!-- register は未ログイン想定なので、固定ヘッダー無しでOK（シンプルに） -->
+<main class="page" style="padding-top:32px; max-width:720px;">
 
-    <div>
-        <label>ユーザー名：</label>
-        <input type="text" th:field="*{name}" />
-        <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
-    </div>
+  <section class="card">
+    <h1 class="page-title" style="font-size:28px;">新規会員登録</h1>
+    <p style="color:#6b7280; margin-top:-6px;">
+      SUN店のアカウントを作成します
+    </p>
 
-    <div>
-        <label>メールアドレス：</label>
-        <input type="email" th:field="*{email}" />
-        <div th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
-    </div>
+    <hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">
 
-    <div>
-        <label>パスワード：</label>
-        <input type="password" th:field="*{password}" />
-        <div th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
-    </div>
+    <form th:action="@{/register}" th:object="${userForm}" method="post">
 
-    <div>
-        <button type="submit">登録する</button>
-    </div>
-</form>
+      <!-- CSRF -->
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
-<p>
-    すでにアカウントをお持ちの方は
-    <a th:href="@{/login}">ログインはこちら</a>
-</p>
+      <div style="display:grid; gap:14px;">
+
+        <div>
+          <label style="font-weight:800; display:block; margin-bottom:6px;">ユーザー名</label>
+          <input class="input" type="text" th:field="*{name}" placeholder="例）太郎" style="width:100%;">
+          <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" style="color:#dc2626; font-weight:700; margin-top:6px;"></div>
+        </div>
+
+        <div>
+          <label style="font-weight:800; display:block; margin-bottom:6px;">メールアドレス</label>
+          <input class="input" type="email" th:field="*{email}" placeholder="example@mail.com" style="width:100%;">
+          <div th:if="${#fields.hasErrors('email')}" th:errors="*{email}" style="color:#dc2626; font-weight:700; margin-top:6px;"></div>
+        </div>
+
+        <div>
+          <label style="font-weight:800; display:block; margin-bottom:6px;">パスワード</label>
+          <input class="input" type="password" th:field="*{password}" placeholder="8文字以上推奨" style="width:100%;">
+          <div th:if="${#fields.hasErrors('password')}" th:errors="*{password}" style="color:#dc2626; font-weight:700; margin-top:6px;"></div>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:center; margin-top:8px;">
+          <button class="btn btn-primary" type="submit">登録する</button>
+          <a class="link" th:href="@{/login}">ログインはこちら</a>
+        </div>
+
+      </div>
+    </form>
+
+  </section>
+
+
+</main>
 
 </body>
 </html>

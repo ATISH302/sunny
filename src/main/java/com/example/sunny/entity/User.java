@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -15,7 +17,7 @@ import jakarta.persistence.Table;
 public class User {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY) // 自動採番
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
 	// 名前（表示名）
@@ -30,13 +32,18 @@ public class User {
 	@Column(nullable = false)
 	private String password;
 
-	// USER / STAFF / ADMIN を入れる
+	// USER / STAFF / ADMIN
 	@Column(nullable = false)
 	private String role;
 
-	// 利用可能フラグ
+	// 利用可能フラグ（Spring Securityの enabled 判定に使える）
 	@Column(nullable = false)
 	private boolean enabled = true;
+
+	// ★ ステータス（BAN / 停止）
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	private UserStatus status = UserStatus.ACTIVE;
 
 	// 作成日時
 	@Column(nullable = false)
@@ -52,12 +59,15 @@ public class User {
 		this.password = password;
 		this.role = role;
 		this.enabled = true;
+		this.status = UserStatus.ACTIVE;
 	}
 
-	// 登録前に自動で日時を入れる
 	@PrePersist
 	public void prePersist() {
 		this.createdAt = LocalDateTime.now();
+		// 念のため（DBでnullにならないように）
+		if (this.status == null)
+			this.status = UserStatus.ACTIVE;
 	}
 
 	// ===== Getter / Setter =====
@@ -103,6 +113,14 @@ public class User {
 
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
+	}
+
+	public UserStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(UserStatus status) {
+		this.status = status;
 	}
 
 	public LocalDateTime getCreatedAt() {
