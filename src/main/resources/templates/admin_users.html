@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ユーザー管理</title>
+
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- ===== 固定ヘッダー ===== -->
+<header class="site-header">
+  <div class="header-inner">
+
+    <!-- 左：ハンバーガー -->
+    <button class="hamburger" type="button" aria-label="メニュー" onclick="toggleMenu()">☰</button>
+
+    <!-- 中央：ブランド -->
+    <div class="brand">
+      <div class="brand-title">SUN店 ネット予約・通販サイト</div>
+      <div class="brand-sub">
+        ようこそ、
+        <span th:text="${loginUserName != null ? loginUserName : #authentication.name}">ユーザー</span>
+        さん
+      </div>
+    </div>
+
+    <!-- 右：ログアウト -->
+    <form class="logout-form" th:action="@{/logout}" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <button class="btn btn-primary" type="submit">ログアウト</button>
+    </form>
+
+  </div>
+</header>
+
+<!-- ===== ドロワーメニュー ===== -->
+<nav id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-header">
+    <div class="drawer-title">メニュー</div>
+    <button class="drawer-close" type="button" aria-label="閉じる" onclick="toggleMenu()">✕</button>
+  </div>
+
+  <ul class="drawer-list">
+    <li><a th:href="@{/}">🏠 商品一覧</a></li>
+    <li><a th:href="@{/mypage/orders}">🧾 注文履歴</a></li>
+    <li><a th:href="@{/mypage/favorites}">💖 お気に入り</a></li>
+
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/orders}">🛠 スタッフ：注文管理</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+    <a th:href="@{/staff/items/new}" onclick="toggleMenu()">➕ スタッフ：商品登録</a>
+  	</li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/reports}">🛡 スタッフ：通報一覧</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/attendance}">🕒 スタッフ：勤怠打刻</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/attendance/manage}">📋 スタッフ：勤怠管理（一覧）</a>
+    </li>
+
+    <li sec:authorize="hasRole('ADMIN')">
+      <a th:href="@{/admin/users}">👑 管理者：ユーザー管理</a>
+    </li>
+
+    <li style="margin-top:10px;">
+      <form th:action="@{/logout}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button class="btn btn-primary" style="width:100%;">ログアウト</button>
+      </form>
+    </li>
+  </ul>
+</nav>
+
+<!-- 背景暗転 -->
+<div id="backdrop" class="backdrop" onclick="toggleMenu()"></div>
+
+<!-- ===== 本体 ===== -->
+<main class="page">
+  <section class="card">
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px;">
+      <div>
+        <h1 class="page-title" style="margin:0;">管理者：ユーザー管理</h1>
+        <a class="link" th:href="@{/}">← ホームに戻る</a>
+      </div>
+    </div>
+
+    <p th:if="${message}" th:text="${message}" style="margin-top:10px; color:#16a34a; font-weight:800;"></p>
+
+    <div class="table-wrap" style="margin-top:14px;">
+      <table class="table" style="min-width:0;">
+        <thead>
+        <tr>
+          <th style="width:80px;">ID</th>
+          <th>名前</th>
+          <th>Email</th>
+          <th style="width:120px;">Role</th>
+          <th style="width:120px;">Status</th>
+          <th style="width:260px;">変更</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="u : ${users}">
+          <td th:text="${u.id}"></td>
+          <td th:text="${u.name}"></td>
+          <td th:text="${u.email}"></td>
+          <td><span class="badge" th:text="${u.role}"></span></td>
+          <td><span class="badge" th:text="${u.status}"></span></td>
+
+          <td>
+            <form th:action="@{'/admin/users/' + ${u.id} + '/status'}"
+                  method="post"
+                  style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:0;">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+              <select class="select" name="status" style="min-width:160px;">
+                <option th:each="s : ${statuses}"
+                        th:value="${s}"
+                        th:text="${s}"
+                        th:selected="${s == u.status}">
+                </option>
+              </select>
+
+              <button class="btn btn-primary" type="submit"
+                      onclick="return confirm('ステータスを変更しますか？');">
+                変更
+              </button>
+            </form>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+</main>
+
+<script>
+function toggleMenu() {
+  const drawer = document.getElementById("drawer");
+  const backdrop = document.getElementById("backdrop");
+
+  const isOpen = drawer.classList.contains("open");
+  if (isOpen) {
+    drawer.classList.remove("open");
+    backdrop.classList.remove("show");
+    document.body.classList.remove("no-scroll");
+  } else {
+    drawer.classList.add("open");
+    backdrop.classList.add("show");
+    document.body.classList.add("no-scroll");
+  }
+}
+</script>
+
+</body>
+</html>

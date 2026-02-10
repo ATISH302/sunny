@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>マイページ | 注文履歴</title>
+
+  <!-- 共通CSS -->
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- ===== 固定ヘッダー ===== -->
+<header class="site-header">
+  <div class="header-inner">
+
+    <!-- 左：ハンバーガー -->
+    <button class="hamburger" type="button" aria-label="メニュー" onclick="toggleMenu()">☰</button>
+
+    <!-- 中央：店名 + 名前 -->
+    <div class="brand">
+      <div class="brand-title">SUN店 ネット予約・通販サイト</div>
+      <div class="brand-sub">
+        ようこそ、
+        <span th:text="${loginUserName != null ? loginUserName : #authentication.name}">ユーザー</span>
+        さん
+      </div>
+    </div>
+
+    <!-- 右：ログアウト -->
+    <form class="logout-form" th:action="@{/logout}" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <button class="btn btn-primary" type="submit">ログアウト</button>
+    </form>
+
+  </div>
+</header>
+
+<!-- ===== drawer menu ===== -->
+<nav id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-header">
+    <div class="drawer-title">マイページ</div>
+    <button class="drawer-close" type="button" aria-label="閉じる" onclick="toggleMenu()">✕</button>
+  </div>
+
+  <ul class="drawer-list">
+    <li><a th:href="@{/}">🏠 商品一覧</a></li>
+    <li><a th:href="@{/mypage/orders}">🧾 注文履歴</a></li>
+    <li><a th:href="@{/mypage/favorites}">💖 お気に入り</a></li>
+
+
+	<li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+		<a th:href="@{/staff/items}">📦 スタッフ：商品管理</a>
+	</li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/orders}">🛠 スタッフ：注文管理</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+		<a th:href="@{/staff/items/new}" onclick="toggleMenu()">➕ スタッフ：商品登録</a>
+  	</li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/reports}">🛡 スタッフ：通報一覧</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/attendance}">🕒 スタッフ：勤怠打刻</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/attendance/manage}">📋 スタッフ：勤怠管理（一覧）</a>
+    </li>
+
+    <li sec:authorize="hasRole('ADMIN')">
+      <a th:href="@{/admin/users}">👑 管理者：ユーザー管理</a>
+    </li>
+  </ul>
+</nav>
+
+<!-- 背景暗転 -->
+<div id="backdrop" class="backdrop" onclick="toggleMenu()" aria-hidden="true"></div>
+
+<!-- ===== page ===== -->
+<main class="page">
+
+  <section class="card">
+    <h1 class="page-title">注文履歴</h1>
+
+    <p style="margin:0 0 14px;">
+      <a class="link" th:href="@{/}">← トップ（商品一覧）へ戻る</a>
+      <span style="color:#9ca3af;"> / </span>
+      <a class="link" th:href="@{/mypage/favorites}">💖 お気に入り</a>
+    </p>
+
+    <div th:if="${#lists.isEmpty(orders)}">
+      <p style="margin:0; color:#6b7280;">まだ注文はありません。</p>
+    </div>
+
+    <div class="table-wrap" th:if="${!#lists.isEmpty(orders)}">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>注文日時</th>
+            <th>商品名</th>
+            <th class="num">数量</th>
+            <th class="num">合計金額</th>
+            <th>ステータス</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr th:each="order : ${orders}">
+            <td th:text="${#temporals.format(order.createdAt, 'yyyy/MM/dd HH:mm')}"></td>
+            <td th:text="${order.item.name}"></td>
+            <td class="num" th:text="${order.quantity}"></td>
+            <td class="num" th:text="${order.totalPrice} + ' 円'"></td>
+            <td th:text="${order.statusLabel}"></td>
+
+            <td>
+              <a class="link" th:href="@{'/mypage/orders/' + ${order.id}}">詳細</a>
+
+              <span th:if="${order.status == 'CREATED'}">
+                <span style="color:#9ca3af;"> / </span>
+                <a class="link" th:href="@{'/mypage/orders/cancel/confirm/' + ${order.id}}">キャンセル</a>
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+
+</main>
+
+<script>
+function toggleMenu() {
+  const drawer = document.getElementById("drawer");
+  const backdrop = document.getElementById("backdrop");
+
+  const isOpen = drawer.classList.contains("open");
+  if (isOpen) {
+    drawer.classList.remove("open");
+    backdrop.classList.remove("show");
+    drawer.setAttribute("aria-hidden", "true");
+    backdrop.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("no-scroll");
+  } else {
+    drawer.classList.add("open");
+    backdrop.classList.add("show");
+    drawer.setAttribute("aria-hidden", "false");
+    backdrop.setAttribute("aria-hidden", "false");
+    document.body.classList.add("no-scroll");
+  }
+}
+</script>
+
+</body>
+</html>
+

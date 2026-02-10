@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スタッフ：通報詳細</title>
+
+    <!-- 共通CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- ===== 固定ヘッダー ===== -->
+<header class="site-header">
+  <div class="header-inner">
+
+    <!-- hamburger -->
+    <button class="hamburger" type="button" aria-label="メニュー" onclick="toggleMenu()">☰</button>
+
+    <!-- brand -->
+    <div class="brand">
+      <div class="brand-title">SUN店 ネット予約・通販サイト</div>
+      <div class="brand-sub">
+        ようこそ、
+        <span th:text="${loginUserName != null ? loginUserName : #authentication.name}">ユーザー</span>
+        さん
+      </div>
+    </div>
+
+    <!-- logout -->
+    <form class="logout-form" th:action="@{/logout}" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <button class="btn btn-primary" type="submit">ログアウト</button>
+    </form>
+
+  </div>
+</header>
+
+<!-- ===== drawer menu ===== -->
+<nav id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-header">
+    <div class="drawer-title">マイページ</div>
+    <button class="drawer-close" type="button" aria-label="閉じる" onclick="toggleMenu()">✕</button>
+  </div>
+
+  <ul class="drawer-list">
+    <li><a th:href="@{/}">🏠 商品一覧</a></li>
+    <li><a th:href="@{/mypage/orders}">🧾 注文履歴</a></li>
+    <li><a th:href="@{/mypage/favorites}">💖 お気に入り</a></li>
+
+
+	<li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+		<a th:href="@{/staff/items}">📦 スタッフ：商品管理</a>
+	</li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/orders}">🛠 スタッフ：注文管理</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+   			<a th:href="@{/staff/items/new}" onclick="toggleMenu()">➕ スタッフ：商品登録</a>
+  		</li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/reports}">🛡 スタッフ：通報一覧</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/attendance}">🕒 スタッフ：勤怠打刻</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/attendance/manage}">📋 スタッフ：勤怠管理（一覧）</a>
+    </li>
+
+    <li sec:authorize="hasRole('ADMIN')">
+      <a th:href="@{/admin/users}">👑 管理者：ユーザー管理</a>
+    </li>
+  </ul>
+</nav>
+
+<!-- 背景暗転 -->
+<div id="backdrop" class="backdrop" onclick="toggleMenu()" aria-hidden="true"></div>
+
+<!-- ===== page ===== -->
+<main class="page">
+
+  <section class="card">
+    <div style="display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;">
+      <div>
+        <a class="link" th:href="@{/staff/reports}">← 通報一覧に戻る</a>
+        <h1 class="page-title" style="margin-top:10px;">スタッフ：通報詳細</h1>
+      </div>
+
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <form th:if="${report.status == 'NEW'}"
+              th:action="@{'/staff/reports/' + ${report.id} + '/done'}"
+              method="post" style="margin:0;">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+          <button class="btn btn-primary" type="submit"
+                  onclick="return confirm('対応済みにしますか？');">
+            対応済みにする
+          </button>
+        </form>
+
+        <form th:if="${report.status == 'DONE'}"
+              th:action="@{'/staff/reports/' + ${report.id} + '/reopen'}"
+              method="post" style="margin:0;">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+          <button class="btn" type="submit"
+                  style="background:#fff; border:1px solid #e5e7eb;"
+                  onclick="return confirm('NEWに戻しますか？');">
+            NEWに戻す
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">
+
+    <!-- 通報情報 -->
+    <h2 style="margin:0 0 10px;">通報情報</h2>
+    <div class="table-wrap">
+      <table class="table" style="min-width:0;">
+        <thead>
+          <tr>
+            <th style="width:220px;">項目</th>
+            <th>内容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ID</td>
+            <td th:text="${report.id}"></td>
+          </tr>
+          <tr>
+            <td>通報日時</td>
+            <td th:text="${#temporals.format(report.createdAt,'yyyy/MM/dd HH:mm')}"></td>
+          </tr>
+          <tr>
+            <td>ステータス</td>
+            <td>
+              <span class="badge" th:text="${report.status}">STATUS</span>
+            </td>
+          </tr>
+          <tr>
+            <td>同じレビューへの通報数</td>
+            <td><span th:text="${sameReviewCount}"></span> 件</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">
+
+    <!-- レビュー情報 -->
+    <h2 style="margin:0 0 10px;">レビュー情報</h2>
+
+    <p style="margin:0 0 8px;">
+      商品：
+      <a class="link"
+         th:href="@{'/items/' + ${report.review.item.id}}"
+         th:text="${report.review.item.name}">商品名</a>
+    </p>
+
+    <p style="margin:0 0 8px;">
+      投稿者：
+      <b th:text="${report.review.user.name}">投稿者</b>
+    </p>
+
+    <p style="margin:0 0 8px;">
+      評価：
+      <span th:each="i : ${#numbers.sequence(1,5)}"
+            th:text="${i <= report.review.rating ? '★' : '☆'}"></span>
+    </p>
+
+    <div style="margin-top:10px; padding:12px; border:1px solid #e5e7eb; border-radius:12px; background:#fafafa;">
+      <div style="font-weight:800; margin-bottom:6px;">コメント</div>
+      <div th:text="${report.review.comment}">コメント本文</div>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">
+
+    <!-- 通報者 -->
+    <h2 style="margin:0 0 10px;">通報したユーザー</h2>
+    <p style="margin:0;">
+      <span th:text="${report.reportedBy != null ? report.reportedBy.name : '（不明）'}">（不明）</span>
+    </p>
+
+    <!-- 理由 -->
+    <div th:if="${report.reason != null}">
+      <hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">
+      <h2 style="margin:0 0 10px;">通報理由</h2>
+      <div style="padding:12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff;">
+        <span th:text="${report.reason}">理由</span>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<script>
+function toggleMenu() {
+  const drawer = document.getElementById("drawer");
+  const backdrop = document.getElementById("backdrop");
+
+  const isOpen = drawer.classList.contains("open");
+  if (isOpen) {
+    drawer.classList.remove("open");
+    backdrop.classList.remove("show");
+    drawer.setAttribute("aria-hidden", "true");
+    backdrop.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("no-scroll");
+  } else {
+    drawer.classList.add("open");
+    backdrop.classList.add("show");
+    drawer.setAttribute("aria-hidden", "false");
+    backdrop.setAttribute("aria-hidden", "false");
+    document.body.classList.add("no-scroll");
+  }
+}
+</script>
+
+</body>
+</html>
+

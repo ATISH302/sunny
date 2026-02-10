@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スタッフ：商品編集</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <button class="hamburger" type="button" aria-label="メニュー" onclick="toggleMenu()">☰</button>
+
+    <div class="brand">
+      <div class="brand-title">SUN店 ネット予約・通販サイト</div>
+      <div class="brand-sub">
+        ようこそ、
+        <span th:text="${loginUserName != null ? loginUserName : #authentication.name}">ユーザー</span>
+        さん
+      </div>
+    </div>
+
+    <form class="logout-form" th:action="@{/logout}" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <button class="btn btn-primary" type="submit">ログアウト</button>
+    </form>
+  </div>
+</header>
+
+<nav id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-header">
+    <div class="drawer-title">メニュー</div>
+    <button class="drawer-close" type="button" aria-label="閉じる" onclick="toggleMenu()">✕</button>
+  </div>
+
+  <ul class="drawer-list">
+    <li><a th:href="@{/}">🏠 商品一覧</a></li>
+    <li><a th:href="@{/mypage/orders}">🧾 注文履歴</a></li>
+    <li><a th:href="@{/mypage/favorites}">💖 お気に入り</a></li>
+
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/items}">📦 スタッフ：商品管理</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/orders}">🛠 スタッフ：注文管理</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/items/new}" onclick="toggleMenu()">➕ スタッフ：商品登録</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/reports}">🛡 スタッフ：通報一覧</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/attendance}">🕒 スタッフ：勤怠打刻</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/attendance/manage}">📋 スタッフ：勤怠管理（一覧）</a>
+    </li>
+
+    <li sec:authorize="hasRole('ADMIN')">
+      <a th:href="@{/admin/users}">👑 管理者：ユーザー管理</a>
+    </li>
+  </ul>
+</nav>
+
+<div id="backdrop" class="backdrop" onclick="toggleMenu()" aria-hidden="true"></div>
+
+<main class="page">
+  <section class="card">
+    <h1 class="page-title" style="margin:0;">スタッフ：商品編集</h1>
+    <p style="margin:10px 0 0;">
+      <a class="link" th:href="@{/staff/items}">← スタッフ商品管理へ</a>
+    </p>
+
+    <p th:if="${errorMessage}" th:text="${errorMessage}"
+       style="margin:14px 0 0; color:#ef4444; font-weight:800;"></p>
+
+    <hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">
+
+    <form th:action="@{/staff/items/{id}/edit(id=${itemId})}"
+          th:object="${itemForm}"
+          method="post"
+          enctype="multipart/form-data"
+          style="display:grid; gap:12px; max-width:520px;">
+
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+      <!-- ✅ これが超重要：既存画像URLを送る -->
+      <input type="hidden" th:field="*{imageUrl}">
+
+      <div>
+        <div style="font-weight:800; margin-bottom:6px;">商品名</div>
+        <input class="input" type="text" th:field="*{name}">
+      </div>
+
+      <div>
+        <div style="font-weight:800; margin-bottom:6px;">説明</div>
+        <textarea class="textarea" rows="4" th:field="*{description}"></textarea>
+      </div>
+
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:180px;">
+          <div style="font-weight:800; margin-bottom:6px;">価格</div>
+          <input class="input" type="number" th:field="*{price}" min="0">
+        </div>
+
+        <div style="flex:1; min-width:180px;">
+          <div style="font-weight:800; margin-bottom:6px;">在庫</div>
+          <input class="input" type="number" th:field="*{stock}" min="0">
+        </div>
+      </div>
+
+      <div>
+        <div style="font-weight:800; margin-bottom:6px;">商品画像（任意）</div>
+
+        <div th:if="*{imageUrl != null and !#strings.isEmpty(imageUrl)}" style="margin:10px 0;">
+          <img th:src="*{imageUrl}" th:alt="*{name}"
+               style="width:100%; max-width:520px; border-radius:16px; border:1px solid #e5e7eb; object-fit:cover;">
+          <div style="margin-top:6px; color:#6b7280; font-size:12px;">
+            ※新しい画像を選ぶと上書きされます（選ばない場合は今の画像のまま）
+          </div>
+        </div>
+
+        <input class="input" type="file" th:field="*{imageFile}" accept="image/*">
+      </div>
+
+      <div>
+        <div style="font-weight:800; margin-bottom:6px;">状態</div>
+        <select class="select" th:field="*{status}">
+          <option value="PUBLIC">販売中</option>
+          <option value="SOLD">SOLD</option>
+        </select>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-primary" type="submit">更新する</button>
+        <a class="btn" th:href="@{/staff/items}" style="background:#fff; border:1px solid #e5e7eb; text-decoration:none;">戻る</a>
+      </div>
+    </form>
+
+  </section>
+</main>
+
+<script>
+function toggleMenu() {
+  const drawer = document.getElementById("drawer");
+  const backdrop = document.getElementById("backdrop");
+
+  const isOpen = drawer.classList.contains("open");
+  if (isOpen) {
+    drawer.classList.remove("open");
+    backdrop.classList.remove("show");
+    drawer.setAttribute("aria-hidden", "true");
+    backdrop.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("no-scroll");
+  } else {
+    drawer.classList.add("open");
+    backdrop.classList.add("show");
+    drawer.setAttribute("aria-hidden", "false");
+    backdrop.setAttribute("aria-hidden", "false");
+    document.body.classList.add("no-scroll");
+  }
+}
+</script>
+
+</body>
+</html>

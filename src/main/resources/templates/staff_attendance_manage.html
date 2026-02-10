@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>勤怠管理（一覧） | SUN店</title>
+
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+
+    <button class="hamburger" type="button" aria-label="メニュー" onclick="toggleMenu()">☰</button>
+
+    <div class="brand">
+      <div class="brand-title">SUN店 ネット予約・通販サイト</div>
+      <div class="brand-sub">
+        ようこそ、
+        <span th:text="${loginUserName != null ? loginUserName : #authentication.name}">ユーザー</span>
+        さん
+      </div>
+    </div>
+
+    <form class="logout-form" th:action="@{/logout}" method="post">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <button class="btn btn-primary" type="submit">ログアウト</button>
+    </form>
+
+  </div>
+</header>
+
+<nav id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-header">
+    <div class="drawer-title">マイページ</div>
+    <button class="drawer-close" type="button" aria-label="閉じる" onclick="toggleMenu()">✕</button>
+  </div>
+
+  <ul class="drawer-list">
+    <li><a th:href="@{/}">🏠 商品一覧</a></li>
+    <li><a th:href="@{/mypage/orders}">🧾 注文履歴</a></li>
+    <li><a th:href="@{/mypage/favorites}">💖 お気に入り</a></li>
+
+
+	<li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+		<a th:href="@{/staff/items}">📦 スタッフ：商品管理</a>
+	</li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/orders}">🛠 スタッフ：注文管理</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+   	<a th:href="@{/staff/items/new}" onclick="toggleMenu()">➕ スタッフ：商品登録</a>
+  	</li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/reports}">🛡 スタッフ：通報一覧</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/attendance}">🕒 スタッフ：勤怠打刻</a>
+    </li>
+    <li sec:authorize="hasAnyRole('STAFF','ADMIN')">
+      <a th:href="@{/staff/attendance/manage}">📋 スタッフ：勤怠管理（一覧）</a>
+    </li>
+
+    <li sec:authorize="hasRole('ADMIN')">
+      <a th:href="@{/admin/users}">👑 管理者：ユーザー管理</a>
+    </li>
+  </ul>
+</nav>
+
+<div id="backdrop" class="backdrop" onclick="toggleMenu()" aria-hidden="true"></div>
+
+<main class="page">
+  <section class="card">
+    <h1 class="page-title">勤怠管理（一覧）</h1>
+
+    <form method="get" th:action="@{/staff/attendance/manage}"
+          style="display:flex; gap:10px; align-items:end; flex-wrap:wrap;">
+      <div>
+        <div class="label" style="margin-bottom:6px;">日付</div>
+        <input class="input" type="date" name="date" th:value="${selectedDate}">
+      </div>
+      <button class="btn btn-primary" type="submit">表示</button>
+    </form>
+
+    <hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>スタッフ</th>
+            <th>出勤</th>
+            <th>休憩開始</th>
+            <th>休憩終了</th>
+            <th>退勤</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr th:each="a : ${attendances}">
+            <td th:text="${a.workDate}"></td>
+            <td th:text="${a.user.name}"></td>
+            <td th:text="${a.clockIn  != null ? #temporals.format(a.clockIn,'HH:mm') : '-'}"></td>
+            <td th:text="${a.breakStart != null ? #temporals.format(a.breakStart,'HH:mm') : '-'}"></td>
+            <td th:text="${a.breakEnd   != null ? #temporals.format(a.breakEnd,'HH:mm') : '-'}"></td>
+            <td th:text="${a.clockOut != null ? #temporals.format(a.clockOut,'HH:mm') : '-'}"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:14px;">
+      <a class="link" th:href="@{/staff/attendance}">← 勤怠打刻へ</a>
+      <span style="color:#9ca3af;"> / </span>
+      <a class="link" th:href="@{/}">← ホームへ</a>
+    </div>
+
+  </section>
+</main>
+
+<script>
+function toggleMenu() {
+  const drawer = document.getElementById("drawer");
+  const backdrop = document.getElementById("backdrop");
+
+  const isOpen = drawer.classList.contains("open");
+  if (isOpen) {
+    drawer.classList.remove("open");
+    backdrop.classList.remove("show");
+    drawer.setAttribute("aria-hidden", "true");
+    backdrop.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("no-scroll");
+  } else {
+    drawer.classList.add("open");
+    backdrop.classList.add("show");
+    drawer.setAttribute("aria-hidden", "false");
+    backdrop.setAttribute("aria-hidden", "false");
+    document.body.classList.add("no-scroll");
+  }
+}
+</script>
+
+</body>
+</html>
